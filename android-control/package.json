@@ -1,0 +1,7 @@
+{
+  "name": "zenbox-control",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Zenbox Control — the developer updater app for Zenbox (own Capacitor project).",
+  "license": "UNLICENSED"
+}
