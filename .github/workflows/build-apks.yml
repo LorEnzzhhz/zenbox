@@ -1,0 +1,85 @@
+name: Build Zenbox APKs
+
+# Builds both Android apps (Zenbox studio + Zenbox Control) on GitHub's
+# runners and uploads the APKs. Trigger it from the Actions tab, or push a
+# tag like v1.0 to have the APKs attached to a GitHub Release automatically.
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # needed to attach APKs to releases
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      # Convex's generated bindings (src/convex/_generated) are gitignored, so
+      # they must be committed for the typecheck to pass on a clean runner.
+      # Run `bunx convex dev --once` locally, then commit the folder.
+      - name: Check generated Convex bindings are committed
+        run: |
+          if [ ! -f src/convex/_generated/api.d.ts ]; then
+            echo "::error::src/convex/_generated is missing — run 'bunx convex dev --once' locally and commit it."
+            exit 1
+          fi
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      # Both web bundles embed the Convex deployment URL at build time — without
+      # it the apps build but crash on load. Configure the repository secret
+      # VITE_CONVEX_URL (e.g. https://<deployment>.convex.cloud) once in
+      # Settings → Secrets and variables → Actions.
+      - name: Check VITE_CONVEX_URL is configured
+        run: |
+          if [ -z "${{ secrets.VITE_CONVEX_URL }}" ]; then
+            echo "::error::Set the VITE_CONVEX_URL repository secret (your Convex deployment URL, e.g. https://xxx.convex.cloud) to build the apps."
+            exit 1
+          fi
+
+      - name: Build Zenbox studio APK
+        env:
+          VITE_CONVEX_URL: ${{ secrets.VITE_CONVEX_URL }}
+        run: bun run apk:build
+
+      - name: Build Zenbox Control APK
+        env:
+          VITE_CONVEX_URL: ${{ secrets.VITE_CONVEX_URL }}
+        run: bun run apk:build:control
+
+      # Both projects output a file named app-release.apk (assembleRelease) —
+      # rename them before uploading so the release/artifact keeps both APKs
+      # (no name collision).
+      - name: Stage renamed APKs
+        run: |
+          mkdir -p release-apks
+          cp android/app/build/outputs/apk/release/app-release.apk release-apks/zenbox-debug.apk
+          cp android-control/android/app/build/outputs/apk/release/app-release.apk release-apks/zenbox-control-debug.apk
+
+      - name: Upload both APKs as workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: zenbox-apks
+          path: release-apks/
+          if-no-files-found: error
+
+      - name: Attach APKs to the GitHub Release (tag pushes only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-apks/
+          generate_release_notes: true
