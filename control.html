@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Zenbox Control" />
+  <meta
+    name="description"
+    content="Zenbox Control — the developer's updater app for Zenbox. Command improvements, review the plan, and ship updates that notify every studio user."
+  />
+  <title>Zenbox Control — App Updater</title>
+
+  <style>
+    /* Instant animated splash — plays before React mounts. Distinct mark for
+       the Control app: a terminal chevron + blinking caret. Pure CSS. */
+    #boot-splash {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #0a0a0a;
+      pointer-events: none;
+      animation: splash-out 0.5s ease 2.4s forwards;
+    }
+    @keyframes splash-out {
+      to {
+        opacity: 0;
+        visibility: hidden;
+      }
+    }
+    .splash-mark {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 80px;
+      height: 80px;
+      overflow: hidden;
+      background: #f5f5f5;
+      border-radius: 14px;
+      box-shadow: 0 18px 50px -18px rgba(0, 0, 0, 0.55);
+      animation: mark-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    @keyframes mark-in {
+      from {
+        transform: scale(0.82) rotate(-4deg);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+      }
+    }
+    .splash-mark svg {
+      width: 56px;
+      height: 56px;
+    }
+    .splash-chevron {
+      fill: none;
+      stroke: #0a0a0a;
+      stroke-width: 7;
+      stroke-linecap: square;
+      stroke-linejoin: miter;
+      stroke-dasharray: 60;
+      stroke-dashoffset: 60;
+      animation: z-draw 0.4s ease 0.15s forwards;
+    }
+    .splash-caret {
+      fill: none;
+      stroke: #0a0a0a;
+      stroke-width: 6;
+      stroke-linecap: square;
+      stroke-dasharray: 26;
+      stroke-dashoffset: 26;
+      animation: z-draw 0.3s ease 0.5s forwards;
+    }
+    .splash-frame {
+      fill: none;
+      stroke: rgba(10, 10, 10, 0.35);
+      stroke-width: 1.5;
+      stroke-dasharray: 360;
+      stroke-dashoffset: 360;
+      animation: z-draw 0.7s ease 0.65s forwards;
+    }
+    @keyframes z-draw {
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+    .splash-blink {
+      fill: #0a0a0a;
+      opacity: 0;
+      animation: blink 1s steps(1) 0.85s infinite;
+    }
+    @keyframes blink {
+      0%,
+      55% {
+        opacity: 0;
+      }
+      56%,
+      100% {
+        opacity: 1;
+      }
+    }
+    .splash-sheen {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 34%;
+      background: rgba(255, 255, 255, 0.28);
+      filter: blur(3px);
+      animation: sheen 1.5s ease-in-out 1s infinite;
+    }
+    @keyframes sheen {
+      0% {
+        transform: translateX(-180%);
+      }
+      60%,
+      100% {
+        transform: translateX(420%);
+      }
+    }
+    .splash-word {
+      display: flex;
+      gap: 0.3em;
+      margin-top: 26px;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #f5f5f5;
+    }
+    .splash-word span {
+      display: inline-block;
+      opacity: 0;
+      transform: translateY(10px);
+      filter: blur(4px);
+      animation: word-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    @keyframes word-in {
+      to {
+        opacity: 1;
+        transform: none;
+        filter: none;
+      }
+    }
+    .splash-bar {
+      width: 176px;
+      height: 1px;
+      margin-top: 22px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 1px;
+    }
+    .splash-bar span {
+      display: block;
+      height: 100%;
+      width: 50%;
+      background: rgba(255, 255, 255, 0.75);
+      animation: bar-run 1.1s ease-in-out infinite;
+    }
+    @keyframes bar-run {
+      from {
+        transform: translateX(-110%);
+      }
+      to {
+        transform: translateX(320%);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="boot-splash" aria-hidden="true">
+    <div class="splash-mark">
+      <svg viewBox="0 0 96 96">
+        <path class="splash-chevron" d="M38 38 L62 54 L38 70" />
+        <path class="splash-caret" d="M36 78 H64" />
+        <rect class="splash-frame" x="3" y="3" width="90" height="90" rx="12" />
+        <rect class="splash-blink" x="36" y="72" width="28" height="4" rx="2" />
+      </svg>
+      <div class="splash-sheen"></div>
+    </div>
+    <div class="splash-word">
+      <span style="animation-delay: 0.45s">Z</span>
+      <span style="animation-delay: 0.5s">E</span>
+      <span style="animation-delay: 0.55s">N</span>
+      <span style="animation-delay: 0.6s">B</span>
+      <span style="animation-delay: 0.65s">O</span>
+      <span style="animation-delay: 0.7s">X</span>
+      <span style="animation-delay: 0.75s; opacity: 0.4">&nbsp;·&nbsp;</span>
+      <span style="animation-delay: 0.8s">C</span>
+      <span style="animation-delay: 0.85s">O</span>
+      <span style="animation-delay: 0.9s">N</span>
+      <span style="animation-delay: 0.95s">T</span>
+      <span style="animation-delay: 1s">R</span>
+      <span style="animation-delay: 1.05s">O</span>
+      <span style="animation-delay: 1.1s">L</span>
+    </div>
+    <div class="splash-bar"><span></span></div>
+  </div>
+  <div id="root"></div>
+  <script type="module" src="/src/control-main.tsx"></script>
+</body>
+
+</html>
