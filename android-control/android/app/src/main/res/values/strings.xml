@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Zenbox Control</string>
+    <string name="title_activity_main">Zenbox Control</string>
+    <string name="package_name">app.zenbox.control</string>
+    <string name="custom_url_scheme">app.zenbox.control</string>
+</resources>
