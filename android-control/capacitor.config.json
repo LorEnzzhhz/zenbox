@@ -1,0 +1,9 @@
+{
+  "appId": "app.zenbox.control",
+  "appName": "Zenbox Control",
+  "webDir": "../dist-control",
+  "backgroundColor": "#0a0a0a",
+  "android": {
+    "allowMixedContent": false
+  }
+}
