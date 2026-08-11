@@ -12,6 +12,9 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
 const repo = process.argv[2];
+// Optional third arg: push only this one relative path (e.g. a huge asset
+// whose upload keeps getting interrupted mid-run).
+const onlyPath = process.argv[3] ?? null;
 const token = process.env.GITHUB_TOKEN;
 if (!token) {
   console.error("Missing GITHUB_TOKEN.");
@@ -68,6 +71,7 @@ function walk(dir) {
       walk(full);
     } else if (entry.isFile()) {
       const rel = relative(ROOT, full).split(sep).join("/");
+      if (onlyPath && rel !== onlyPath) continue;
       if (SKIP_FILES.has(rel)) continue;
       if (SKIP_FILE_SUFFIXES.some((s) => rel.endsWith(s))) continue;
       if (SKIP_PATH_PREFIXES.some((p) => rel.startsWith(p))) continue;
