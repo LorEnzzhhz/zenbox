@@ -12,9 +12,10 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
 const repo = process.argv[2];
-// Optional third arg: push only this one relative path (e.g. a huge asset
-// whose upload keeps getting interrupted mid-run).
-const onlyPath = process.argv[3] ?? null;
+const onlyMissing = process.argv.includes("--only-missing");
+// Optional extra args: push only these relative paths (e.g. huge assets whose
+// upload keeps getting interrupted mid-run).
+const onlyPaths = process.argv.slice(3).filter((a) => !a.startsWith("--"));
 const token = process.env.GITHUB_TOKEN;
 if (!token) {
   console.error("Missing GITHUB_TOKEN.");
@@ -71,7 +72,7 @@ function walk(dir) {
       walk(full);
     } else if (entry.isFile()) {
       const rel = relative(ROOT, full).split(sep).join("/");
-      if (onlyPath && rel !== onlyPath) continue;
+      if (onlyPaths.length > 0 && !onlyPaths.includes(rel)) continue;
       if (SKIP_FILES.has(rel)) continue;
       if (SKIP_FILE_SUFFIXES.some((s) => rel.endsWith(s))) continue;
       if (SKIP_PATH_PREFIXES.some((p) => rel.startsWith(p))) continue;
@@ -85,6 +86,30 @@ function walk(dir) {
   }
 }
 walk(ROOT);
+
+// In --only-missing mode, compare against the remote tree first and push
+// just the files that aren't there yet (fast, few API calls).
+if (onlyMissing) {
+  const headers0 = {
+    Authorization: `Bearer ${token}`,
+    Accept: "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+    "User-Agent": "zenbox-source-push",
+  };
+  try {
+    const res = await fetch(`https://api.github.com/repos/${repo}/git/trees/main?recursive=1`, { headers: headers0 });
+    if (!res.ok) throw new Error(`tree fetch HTTP ${res.status}`);
+    const body = await res.json();
+    const remote = new Set(
+      (body.tree ?? []).filter((t) => t.type === "blob").map((t) => t.path),
+    );
+    const before = files.length;
+    files = files.filter((f) => !remote.has(f.rel));
+    console.log(`${before} local files, ${files.length} missing on main — pushing those.`);
+  } catch (err) {
+    console.error(`Could not list remote tree (${err instanceof Error ? err.message : "error"}) — falling back to full sync.`);
+  }
+}
 
 console.log(`Pushing ${files.length} files to ${repo}…`);
 
